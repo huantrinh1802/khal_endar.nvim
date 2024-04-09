@@ -22,19 +22,33 @@ end
 
 function M.show(type, args)
   local start_date, end_date = nil, nil
+  local count = 0
   if #args == 0 then
-    -- start_date, end_date = M.utils.calculate_relative_datetime('2w')
-    start_date, end_date = M.utils.calculate_week_dates()
-  elseif #args == 1 then
-    if M.utils.table_contains(args[1], { "week", "month", "quarter", "year" }) then
-      start_date, end_date = date_funcs[args[1]]()
+    start_date, end_date = M.utils.calculate_relative_datetime("2w")
+  elseif #args % 2 == 1 then
+    if M.utils.table_contains(args[#args], { "week", "month", "quarter", "year" }) then
+      start_date, end_date = date_funcs[args[#args]]()
     else
-      start_date, end_date = M.utils.calculate_relative_datetime(args[1])
+      start_date, end_date = M.utils.calculate_relative_datetime(args[#args])
     end
+    count = 1
   else
-    start_date, end_date = args[1], args[2]
+    if not (args[#args - 1]:match("-a") or args[#args - 1]:match("-d")) then
+      start_date, end_date = args[#args - 1], args[#args]
+      count = 2
+    else
+      start_date, end_date = M.utils.calculate_relative_datetime("2w")
+    end
   end
-  local _, cal = M.execute_command("khal --color " .. type .. " " .. start_date .. " " .. end_date, true)
+  local options = ""
+  if count < #args then
+    for i = 1, #args - count do
+      options = options .. " " .. args[i]
+    end
+  end
+  print("khal --color " .. type .. " " .. options .. " " .. start_date .. " " .. end_date)
+  local _, cal =
+    M.execute_command("khal --color " .. type .. " " .. options .. " " .. start_date .. " " .. end_date, true)
   local contents = vim.split(cal, "\n")
   M.ui.trigger_hover(contents, "List of events")
 end
@@ -43,7 +57,7 @@ function M.run(args)
   M.execute_command("khal " .. table.concat(args, " "), false, true)
 end
 
-function M.interact()
+function M.interact(args)
   local Popup = require("nui.popup")
   local event = require("nui.utils.autocmd").event
 
@@ -63,12 +77,11 @@ function M.interact()
 
   -- mount/open the component
   popup:mount()
-  vim.cmd("term ikhal")
+  vim.cmd("term ikhal " .. table.concat(args, " "))
   vim.cmd("startinsert")
   popup:on(event.TermClose, function()
     popup:unmount()
   end)
-
 end
 
 function M.setup()
@@ -79,12 +92,11 @@ function M.setup()
     M.show("list", args.fargs)
   end, { nargs = "*" })
   vim.api.nvim_create_user_command("KLInteract", function(args)
-    M.interact()
-  end, {})
+    M.interact(args)
+  end, { nargs = "*" })
   vim.api.nvim_create_user_command("KLRun", function(args)
     M.run(args.fargs)
   end, { nargs = "*" })
-
 end
 
 return M
