@@ -28,7 +28,7 @@ The plugin allow you to view and interact with calendar events via Khal without 
 
 ```lua
 {
-    "huantrinh1802/khal_endar.nvim/",
+    "huantrinh1802/khal_endar.nvim",
     version = "*",
     dependencies = { "MunifTanjim/nui.nvim", "chrisbra/Colorizer" },
     config = function()
